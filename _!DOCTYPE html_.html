@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Sistema de control de inventarios para almacén de partes automotrices" />
+  <title>Inventario de Almacén</title>
+  <style>
+    :root {
+      --color-primario: #003366;
+      --color-secundario: #f2f2f2;
+      --color-acento: #007bff;
+      --color-texto: #333;
+      --borde-radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: var(--color-secundario);
+      color: var(--color-texto);
+    }
+
+    header {
+      background-color: var(--color-primario);
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    nav {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      background: #e6e6e6;
+      padding: 1rem;
+    }
+
+    nav button {
+      background-color: var(--color-acento);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--borde-radius);
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    nav button:hover {
+      background-color: #0056b3;
+    }
+
+    .seccion {
+      display: none;
+      padding: 2rem;
+    }
+
+    .activa {
+      display: block;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    form input, form select, form textarea {
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: var(--borde-radius);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+    }
+
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+    }
+
+    @media (max-width: 600px) {
+      nav {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Sistema de Control de Inventario</h1>
+    <p>Almacén de Partes - Industria Automotriz</p>
+  </header>
+
+  <nav>
+    <button onclick="mostrarSeccion('alta')">Alta de Material</button>
+    <button onclick="mostrarSeccion('baja')">Baja de Material</button>
+    <button onclick="mostrarSeccion('reporte')">Reporte de Stock</button>
+  </nav>
+
+  <main>
+    <section id="alta" class="seccion">
+      <h2>Alta de Material</h2>
+      <form id="formAlta">
+        <input type="text" placeholder="Número de Parte" required />
+        <input type="text" placeholder="Descripción" required />
+        <input type="number" placeholder="Cantidad" min="1" required />
+        <select required>
+          <option value="">Unidad de Medida</option>
+          <option>pz</option>
+          <option>kg</option>
+          <option>lt</option>
+        </select>
+        <button type="submit">Guardar</button>
+      </form>
+    </section>
+
+    <section id="baja" class="seccion">
+      <h2>Baja de Material</h2>
+      <form id="formBaja">
+        <input type="text" placeholder="Número de Parte" required />
+        <input type="text" placeholder="Solicitante" required />
+        <input type="number" placeholder="Cantidad a Retirar" min="1" required />
+        <button type="submit">Registrar Salida</button>
+      </form>
+    </section>
+
+    <section id="reporte" class="seccion">
+      <h2>Reporte de Stock</h2>
+      <button onclick="descargarReporte()">Descargar Reporte</button>
+      <table id="tablaStock">
+        <thead>
+          <tr>
+            <th>Número de Parte</th>
+            <th>Descripción</th>
+            <th>Unidad</th>
+            <th>Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Datos generados dinámicamente -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const inventario = new Map();
+
+    function mostrarSeccion(id) {
+      document.querySelectorAll('.seccion').forEach(sec => sec.classList.remove('activa'));
+      document.getElementById(id).classList.add('activa');
+    }
+
+    document.getElementById('formAlta').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const [parte, desc, cantidad, unidad] = this.elements;
+      const clave = parte.value.trim();
+      const item = inventario.get(clave) || {
+        descripcion: desc.value.trim(),
+        unidad: unidad.value,
+        stock: 0
+      };
+      item.stock += parseInt(cantidad.value);
+      inventario.set(clave, item);
+      this.reset();
+      actualizarTabla();
+      alert("Material agregado correctamente.");
+    });
+
+    document.getElementById('formBaja').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const [parte, solicitante, cantidad] = this.elements;
+      const clave = parte.value.trim();
+      const item = inventario.get(clave);
+      if (!item) return alert("Material no encontrado.");
+      const retiro = parseInt(cantidad.value);
+      if (item.stock < retiro) return alert("Stock insuficiente.");
+      item.stock -= retiro;
+      inventario.set(clave, item);
+      this.reset();
+      actualizarTabla();
+      alert(`Salida registrada por ${solicitante.value}`);
+    });
+
+    function actualizarTabla() {
+      const tbody = document.querySelector('#tablaStock tbody');
+      tbody.innerHTML = '';
+      for (const [clave, item] of inventario.entries()) {
+        const fila = `<tr><td>${clave}</td><td>${item.descripcion}</td><td>${item.unidad}</td><td>${item.stock}</td></tr>`;
+        tbody.insertAdjacentHTML('beforeend', fila);
+      }
+    }
+
+    function descargarReporte() {
+      let csv = 'Número de Parte,Descripción,Unidad,Stock\n';
+      for (const [clave, item] of inventario.entries()) {
+        csv += `${clave},${item.descripcion},${item.unidad},${item.stock}\n`;
+      }
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'reporte_stock.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+
+</html>
